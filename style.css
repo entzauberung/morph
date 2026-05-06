@@ -1107,6 +1107,19 @@ body,
   background: transparent;
 }
 
+.action-btn-danger-text {
+  background: transparent;
+  color: #ff4d4f;
+  border: 1px solid transparent;
+  font-weight: 500;
+}
+
+.action-btn-danger-text:hover {
+  background: rgba(255, 77, 79, 0.06);
+  border-color: rgba(255, 77, 79, 0.25);
+  color: #cf1322;
+}
+
 /* ================================================================
    11. 模态框
    ================================================================ */
@@ -1592,6 +1605,29 @@ body,
     margin: 0 auto;
   }
 
+  .intro-modal {
+    width: calc(100vw - 32px);
+    max-width: 360px;
+  }
+
+  .intro-body {
+    padding: 24px 20px 20px;
+  }
+
+  .intro-avatar {
+    width: 64px;
+    height: 64px;
+    font-size: 32px;
+  }
+
+  .intro-title {
+    font-size: 18px;
+  }
+
+  .intro-text p {
+    font-size: 13px;
+  }
+
   .modal-sm {
     width: calc(100vw - 48px);
     max-width: 340px;
@@ -1784,6 +1820,7 @@ body,
 /* 联系人页头像按钮 */
 .mobile-header-avatar {
   display: none;
+  position: relative;
   width: 34px;
   height: 34px;
   border-radius: 50%;
@@ -1856,7 +1893,270 @@ body,
 }
 
 /* ================================================================
-   18. 无障碍：减少动画偏好
+   18. 头像光晕引导动画（任务 2.2）
+   ================================================================ */
+
+/* -- 基础动画：头像缩放呼吸 + 外围光晕 -- */
+.avatar-glow-guide {
+  animation: avatarGlowPulse 2s var(--ease-spring) 4;
+}
+
+@keyframes avatarGlowPulse {
+  0%   { transform: scale(1.0); box-shadow: 0 0 0 0 rgba(22, 119, 255, 0.6), 0 2px 10px rgba(22, 119, 255, 0.4); }
+  20%  { transform: scale(1.12); box-shadow: 0 0 16px 6px rgba(22, 119, 255, 0.5), 0 2px 20px rgba(22, 119, 255, 0.5); }
+  40%  { transform: scale(1.0); box-shadow: 0 0 0 0 rgba(22, 119, 255, 0.6), 0 2px 10px rgba(22, 119, 255, 0.4); }
+  100% { transform: scale(1.0); box-shadow: 0 0 0 0 rgba(22, 119, 255, 0.6), 0 2px 10px rgba(22, 119, 255, 0.4); }
+}
+
+/* -- 外围环形光晕呼吸 -- */
+@keyframes avatarRingBreathe {
+  0%   { opacity: 0.3; }
+  20%  { opacity: 1; }
+  40%  { opacity: 0.3; }
+  100% { opacity: 0.3; }
+}
+
+/* -- 环形光晕（桌面端 .user-avatar） -- */
+.user-avatar::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  border: 3px solid rgba(22, 119, 255, 0.4);
+  box-shadow: 0 0 12px rgba(22, 119, 255, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s var(--ease-spring);
+}
+
+.user-avatar.avatar-glow-guide::before {
+  opacity: 1;
+  animation: avatarRingBreathe 2s var(--ease-spring) 4;
+}
+
+/* -- 环形光晕（移动端 .mobile-header-avatar） -- */
+.mobile-header-avatar::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 2.5px solid rgba(22, 119, 255, 0.4);
+  box-shadow: 0 0 8px rgba(22, 119, 255, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s var(--ease-spring);
+}
+
+.mobile-header-avatar.avatar-glow-guide::before {
+  opacity: 1;
+  animation: avatarRingBreathe 2s var(--ease-spring) 4;
+}
+
+/* ================================================================
+   19. 开屏弹窗（任务 3 — 首次访问介绍）
+   ================================================================ */
+.intro-modal {
+  width: 400px;
+  text-align: center;
+}
+
+.intro-body {
+  padding: 32px 28px 28px;
+}
+
+.intro-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #4096FF, var(--brand));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  margin: 0 auto 20px;
+  box-shadow: 0 4px 20px rgba(22, 119, 255, 0.25);
+}
+
+.intro-title {
+  font-size: 20px;
+  font-weight: 650;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+  letter-spacing: -0.01em;
+}
+
+.intro-text {
+  text-align: left;
+  margin-bottom: 24px;
+}
+
+.intro-text p {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.85;
+  margin-bottom: 12px;
+}
+
+.intro-text p:last-child {
+  margin-bottom: 0;
+}
+
+.intro-start-btn {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.intro-api-hint {
+  margin-top: 4px;
+}
+
+.intro-api-hint p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.intro-api-link {
+  color: var(--brand);
+  text-decoration: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-standard);
+}
+
+.intro-api-link:hover {
+  color: var(--brand-hover);
+  text-decoration: underline;
+}
+
+/* ================================================================
+   20. 次要按钮样式
+   ================================================================ */
+.action-btn-secondary {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+  font-weight: 500;
+}
+
+.action-btn-secondary:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+  background: var(--brand-light);
+}
+
+/* ================================================================
+   21. 设置分隔线 + 开关样式
+   ================================================================ */
+.setting-divider {
+  height: 1px;
+  background: var(--border-light);
+  margin: 20px 0;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  user-select: none;
+}
+
+.toggle-label input[type="checkbox"] {
+  display: none;
+}
+
+.toggle-switch {
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--border-light);
+  position: relative;
+  flex-shrink: 0;
+  transition: background var(--dur-fast) var(--ease-standard);
+}
+
+.toggle-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--white);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+
+.toggle-label input:checked + .toggle-switch {
+  background: var(--brand);
+}
+
+.toggle-label input:checked + .toggle-switch::after {
+  transform: translateX(18px);
+}
+
+/* ================================================================
+   22. 危险操作区域
+   ================================================================ */
+.danger-zone {
+  padding: 0;
+}
+
+.danger-zone-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+/* ================================================================
+   23. 开源信息
+   ================================================================ */
+.opensource-info {
+  padding: 0;
+}
+
+.opensource-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.opensource-links {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+.opensource-link {
+  color: var(--brand);
+  text-decoration: none;
+  transition: color var(--dur-fast) var(--ease-standard);
+}
+
+.opensource-link:hover {
+  color: var(--brand-hover);
+  text-decoration: underline;
+}
+
+.opensource-desc {
+  font-size: 11px;
+  color: var(--text-placeholder);
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+/* ================================================================
+   24. 无障碍：减少动画偏好
    ================================================================ */
 @media (prefers-reduced-motion: reduce) {
   *,

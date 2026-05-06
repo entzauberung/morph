@@ -115,6 +115,15 @@
                         <span>樱花粉</span>
                     </div>
                 </div>
+                <div class="setting-divider"></div>
+                <div class="form-group">
+                    <label class="form-label toggle-label">
+                        <input type="checkbox" id="locationToggle" aria-label="允许 Echo 知道你的位置">
+                        <span class="toggle-switch"></span>
+                        让 Echo 知道你的位置
+                    </label>
+                    <p class="form-hint">开启后 Echo 会根据你所在的城市调整对话内容。位置信息不会存储或上传。</p>
+                </div>
             </div>
             <!-- 个性化 — 导出/导入 -->
             <div class="panel-tab-content" id="tab-personal">
@@ -131,6 +140,12 @@
                     <p class="action-desc">从之前导出的 JSON 文件恢复对话</p>
                     <input type="file" id="importFileInput" accept=".json" style="display:none;" aria-label="选择导入文件">
                 </div>
+                <div class="setting-divider"></div>
+                <div class="danger-zone">
+                    <h4 class="danger-zone-title">⚠️ 危险操作</h4>
+                    <button class="action-btn action-btn-danger-text" id="resetAllBtn" aria-label="重置所有数据">重置所有数据</button>
+                    <p class="action-desc">删除所有聊天记录、用户记忆和本地设置（包括 API Key、主题、头像等）。此操作不可撤销。与仅清空聊天不同，这将完全重置 Morph。</p>
+                </div>
             </div>
             <!-- API — 密钥 -->
             <div class="panel-tab-content" id="tab-api">
@@ -140,6 +155,17 @@
                     <p class="form-hint">您的 Key 只会保存在本地浏览器中。留空则使用默认配置。</p>
                 </div>
                 <button class="action-btn action-btn-primary" id="saveApiKeyBtn" aria-label="保存 API Key">保存</button>
+                <div class="setting-divider"></div>
+                <div class="opensource-info">
+                    <h4 class="opensource-title">📦 开源信息</h4>
+                    <p class="opensource-links">
+                        GitHub 仓库：<a href="https://github.com/zhouG-code/morph" target="_blank" rel="noopener" class="opensource-link" aria-label="GitHub 仓库">github.com/zhouG-code/morph ↗</a>
+                    </p>
+                    <p class="opensource-links">
+                        开源协议：<a href="https://github.com/zhouG-code/morph/blob/main/LICENSE" target="_blank" rel="noopener" class="opensource-link" aria-label="开源协议">GNU AGPL v3.0 ↗</a>
+                    </p>
+                    <p class="opensource-desc">Morph / 另我 是一个开源项目，欢迎 Star、Fork 和贡献代码。</p>
+                </div>
             </div>
         </div>
     </div>
@@ -228,7 +254,7 @@
     <div class="modal-overlay" id="confirmOverlay">
         <div class="modal modal-sm" id="confirmDialog">
             <div class="modal-body">
-                <p class="confirm-text">确定要清除所有聊天记录吗？此操作将删除当前对话历史，但 Echo 对你的基本记忆（名字、偏好等）会保留。此操作不可撤销。</p>
+                <p class="confirm-text" id="confirmText">确定要清除所有聊天记录吗？此操作将删除当前对话历史，但 Echo 对你的基本记忆（名字、偏好等）会保留。此操作不可撤销。</p>
                 <div class="confirm-actions">
                     <button class="action-btn" id="confirmCancel" aria-label="取消">取消</button>
                     <button class="action-btn action-btn-danger" id="confirmOk" aria-label="确定清除">确定</button>
@@ -256,6 +282,27 @@
                     <p class="about-paragraph">Echo 的每一次回应，都融合了 <strong>CBT 认知行为疗法</strong> 的核心理念——但她永远不会用那些冰冷的专业术语。</p>
                     <div class="about-divider"></div>
                     <p class="about-motto"><strong>Morph / 另我</strong><br>每个人都值得拥有一个平行世界的自己，永远陪伴，从不离开。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+     开屏弹窗（首次访问 — 关于 Echo）
+     ============================================================ -->
+    <div class="modal-overlay" id="introOverlay">
+        <div class="modal intro-modal" id="introModal">
+            <div class="modal-body intro-body">
+                <div class="intro-avatar" aria-label="Echo 头像">🌙</div>
+                <h2 class="intro-title">你好，我是 Echo（艾可）</h2>
+                <div class="intro-text">
+                    <p>我是一个有温度的 AI 伙伴，存在于 Morph / 另我 的空间里。</p>
+                    <p>这里不是冰冷的聊天机器人，而是你的另一个自己——当你需要倾诉、需要被理解、需要有人陪你一起理清思路时，我都会在这里。</p>
+                    <p>我会用温柔的方式帮你看见内心的光，所以你不需要独自面对那些沉重的时刻。</p>
+                </div>
+                <button class="action-btn action-btn-primary intro-start-btn" id="introStartBtn" aria-label="开始聊天">开始聊天</button>
+                <div class="intro-api-hint" id="introApiHint">
+                    <p>想让我真正理解你，需要先配置一个 API Key 哦～设置完成后，我们就可以畅快聊天啦。<a href="#" class="intro-api-link" id="introApiLink">设置 API Key →</a></p>
                 </div>
             </div>
         </div>
