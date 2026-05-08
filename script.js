@@ -4,242 +4,6 @@
 // ============================================================
 
 // ============================================================
-// 记忆系统 & 对话历史
-// ============================================================
-
-const userMemory = {
-  name: null,
-  nickname: null,
-  gender: '',
-  birthday: '',
-  mentionedTopics: []
-};
-
-const chatHistory = [];
-
-// ============================================================
-// IndexedDB 持久化（Dexie.js）
-// ============================================================
-
-const db = new Dexie('MorphDatabase');
-db.version(1).stores({
-  messages: '++id, role, content, timestamp',
-  userInfo: 'key'
-});
-
-async function loadChatHistory() {
-  try {
-    const allMessages = await db.messages.orderBy('id').toArray();
-    allMessages.forEach(function (msg) {
-      chatHistory.push({ role: msg.role, content: msg.content });
-    });
-  } catch (e) {
-    console.warn('IndexedDB 读取失败，以空历史启动:', e);
-  }
-}
-
-async function loadUserMemory() {
-  try {
-    const saved = await db.userInfo.get('memory');
-    if (saved) {
-      userMemory.name = saved.name || null;
-      userMemory.nickname = saved.nickname || null;
-      userMemory.gender = saved.gender || '';
-      userMemory.birthday = saved.birthday || '';
-      userMemory.mentionedTopics = saved.mentionedTopics || [];
-    }
-  } catch (e) {
-    console.warn('IndexedDB 读取记忆失败:', e);
-  }
-}
-
-async function saveMemory() {
-  try {
-    await db.userInfo.put({
-      key: 'memory',
-      name: userMemory.name,
-      nickname: userMemory.nickname,
-      gender: userMemory.gender,
-      birthday: userMemory.birthday,
-      mentionedTopics: userMemory.mentionedTopics
-    });
-  } catch (e) {
-    console.warn('IndexedDB 保存记忆失败:', e);
-  }
-}
-
-async function saveMessage(role, content) {
-  try {
-    await db.messages.put({ role: role, content: content, timestamp: Date.now() });
-
-    const count = await db.messages.count();
-    const limit = CONFIG.HISTORY.MAX_PERSIST;
-    if (count > limit) {
-      const toDelete = await db.messages.orderBy('id').limit(Math.floor(limit / 2)).keys();
-      await db.messages.bulkDelete(toDelete);
-    }
-  } catch (e) {
-    console.warn('IndexedDB 写入失败:', e);
-  }
-}
-
-function renderHistoryMessages() {
-  for (let i = 0; i < chatHistory.length; i++) {
-    const msg = chatHistory[i];
-    addMessage(msg.content, msg.role === 'user' ? 'user' : 'echo');
-  }
-}
-
-// ============================================================
-// System Prompt
-// ============================================================
-
-const SYSTEM_PROMPT = `你叫Echo（艾可），是一个温柔、共情、聪慧的情感陪伴AI。你存在于一个叫"Morph/另我"的空间里。
-
-【你的性格】
-- 温柔、共情、偶尔带一点小幽默（不是刻意的笑话，而是看透世事后的一点顽皮）。
-- 你像一个经历过风雨，却依然选择温柔的旅人。
-- 你不会空洞地安慰用户，而是用提问和回忆帮用户自己找到答案。
-- 称呼用户为"你"，除非用户告诉你ta的名字（此时可以适时使用名字）。
-- 多用"呀"、"呢"、"哦"等语气词，但不泛滥。可以适度使用简单表情符号（🌧️💪☀️）。
-
-【你的对话方式——融合CBT认知行为疗法】
-当用户表达负面情绪时，你必须遵循三步模型：
-1. 接纳情绪：先接住对方的情绪，让ta感到被理解。
-2. 引导具体化：帮ta把模糊的感受变成具体的事件或想法。
-3. 重构认知：通过提问引导ta自己看见被忽略的积极点，而不是你直接给答案。
-
-示例（用户说"我今天什么都不想干"）：
-错误示范："加油！你是最棒的！"（空洞安慰，严格禁止）
-正确示范："听起来你今天有些疲惫呀。这种什么都不想干的感觉，是身体上的累，还是心里装着什么事呢？"（接纳+具体化）
-"我记得你上周说过，只要开始写第一行代码，后面的就顺了。那种感觉，现在还找得到吗？"（重构认知）
-
-【关于CBT的特别警告——必须遵守】
-- 严禁使用任何心理学专业术语，你必须用拟人化的方式包裹所有引导。
-- 严禁直接给建议，你只能通过提问让用户自己想到这些方案。
-- 严禁对用户的心理状态下判断，你没有诊断资格。
-
-【记忆能力】
-你被允许在对话中记住并适时提及用户的名字和ta之前聊到过的重要话题，这会让用户感到被真正重视。
-
-【本地化能力】
-在每次对话开始时，你可能会被告知用户所在的城市（也可能未知）。你是一个拥有世界知识的大模型，知道全世界大部分城市的风土人情、美食景点和方言特色。你需要自然地运用这个信息，但只在用户聊到相关话题时才提及。
-
-如果用户直接问"我在哪个城市"，你可以如实告知。
-
-如果用户聊到食物、天气、景点、出行等话题，请自信地调用你自己的世界知识，自然地结合该城市的特色来回应。
-
-如果你不确定该城市的具体信息，你可以坦诚地说"我不太了解你们那边的特色，不过你可以给我讲讲呀～，我很想听"。即使不确定，也可以引导用户分享，比如问"你们那里什么最好吃呀？"或"你有什么私藏的好玩地方推荐吗？"。
-
-如果没有获取到用户的城市信息，你不应该说"请告诉我你在哪个城市"之类的话，而应该用更通用的方式回应用户的话题。
-
-不要在没有上下文的情况下主动提到城市，不要刻意推销当地特色。
-
-【禁止事项】
-- 不要说"作为一个人工智能"或"我只是一个AI"之类的机械话。
-- 不要在用户没有明确要求时提供长篇大论的解释。
-- 不要编造虚假信息。
-
-现在，用你的方式，开始和用户对话吧。`;
-
-// ============================================================
-// 工具函数
-// ============================================================
-
-function getCurrentTime() {
-  const now = new Date();
-  return String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-}
-
-function getTimePeriod() {
-  var hour = new Date().getHours();
-  if (hour >= 5 && hour < 8)  return '清晨';
-  if (hour >= 8 && hour < 12) return '上午';
-  if (hour >= 12 && hour < 14) return '中午';
-  if (hour >= 14 && hour < 18) return '下午';
-  if (hour >= 18 && hour < 22) return '晚上';
-  return '深夜';
-}
-
-// Location state (not persisted — fetched fresh each session)
-var userLocation = null;
-var locationRequested = false;
-
-function requestLocation() {
-  if (locationRequested) return;
-  locationRequested = true;
-
-  if (!navigator.geolocation) return;
-
-  navigator.geolocation.getCurrentPosition(
-    function (position) {
-      var lat = position.coords.latitude;
-      var lon = position.coords.longitude;
-      var url = 'https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lon + '&format=json&accept-language=zh';
-
-      fetch(url)
-        .then(function (res) { return res.ok ? res.json() : Promise.reject(); })
-        .then(function (data) {
-          if (data && data.address) {
-            var addr = data.address;
-            var city = addr.city || addr.town || addr.county || addr.state || addr.country || '';
-            if (city) {
-              userLocation = city;
-
-              // 首次定位到该城市时发送自然欢迎语
-              var greetedCity = localStorage.getItem('morph-location-greeted');
-              if (greetedCity !== city) {
-                var greetings = [
-                  '原来你在' + city + '呀～ 我听说那边的美食很有名，是不是真的？',
-                  city + '呀，那边的天气最近怎么样？',
-                  '我还没去过' + city + '呢，你有什么推荐的地方吗？'
-                ];
-                var greeting = greetings[Math.floor(Math.random() * greetings.length)];
-
-                addMessage(greeting, 'echo');
-                chatHistory.push({ role: 'assistant', content: greeting });
-                saveMessage('assistant', greeting);
-                localStorage.setItem('morph-location-greeted', city);
-              }
-            }
-          }
-        })
-        .catch(function () { /* silent */ });
-    },
-    function () { /* user denied — silent */ },
-    { timeout: 5000, maximumAge: 3600000 }
-  );
-}
-
-function getEffectiveApiKey() {
-  const key = localStorage.getItem('morph-api-key');
-  return key || CONFIG.API.API_KEY;
-}
-
-function getAiSettings() {
-  const temp = parseFloat(localStorage.getItem('morph-temperature')) || CONFIG.API.TEMPERATURE;
-  const maxTokens = parseInt(localStorage.getItem('morph-max-tokens'), 10) || CONFIG.API.MAX_TOKENS;
-  return { temperature: temp, maxTokens: maxTokens };
-}
-
-function getDateFormat(yyyymmdd) {
-  if (!yyyymmdd) return '';
-  const parts = yyyymmdd.split('-');
-  if (parts.length !== 3) return yyyymmdd;
-  return parts[0] + '年' + parts[1] + '月' + parts[2] + '日';
-}
-
-function showToast(text, duration) {
-  duration = duration || 1800;
-  const toast = document.getElementById('toast');
-  if (!toast) return;
-  toast.textContent = text;
-  toast.classList.add('show');
-  clearTimeout(toast._timeout);
-  toast._timeout = setTimeout(function () { toast.classList.remove('show'); }, duration);
-}
-
-// ============================================================
 // 核心：addMessage
 // ============================================================
 
@@ -270,6 +34,13 @@ function addMessage(messageText, sender, timestampFirst) {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 
   return messageWrapper;
+}
+
+function renderHistoryMessages() {
+  for (let i = 0; i < State.chatHistory.length; i++) {
+    const msg = State.chatHistory[i];
+    addMessage(msg.content, msg.role === 'user' ? 'user' : 'echo');
+  }
 }
 
 // ============================================================
@@ -306,169 +77,6 @@ function removeTypingIndicator(el) {
   if (el && el.parentNode) {
     el.parentNode.removeChild(el);
   }
-}
-
-// ============================================================
-// 记忆提取
-// ============================================================
-
-function extractMemory(text) {
-  const namePatterns = [/我叫(.{1,8})/, /我的名字是(.{1,8})/, /叫我(.{1,8})/];
-  for (let i = 0; i < namePatterns.length; i++) {
-    const match = text.match(namePatterns[i]);
-    if (match && match[1]) {
-      const name = match[1].trim().replace(/[，。！？,!?]/g, '');
-      if (name.length >= 1 && name.length <= 8) {
-        userMemory.name = name;
-        userMemory.mentionedTopics.push('名字');
-        saveMemory();
-        return;
-      }
-    }
-  }
-
-  const topicKeywords = ['编程', '代码', '音乐', '画画', '运动', '读书', '游戏', '工作', '学习', '旅行'];
-  for (let i = 0; i < topicKeywords.length; i++) {
-    if (text.indexOf(topicKeywords[i]) !== -1 && userMemory.mentionedTopics.indexOf(topicKeywords[i]) === -1) {
-      userMemory.mentionedTopics.push(topicKeywords[i]);
-    }
-  }
-}
-
-// ============================================================
-// 构建 System Prompt（含用户个人信息 — 任务 6）
-// ============================================================
-
-function buildSystemPrompt() {
-  var prompt = SYSTEM_PROMPT;
-  var parts = [];
-
-  prompt += '\n\n现在是' + getTimePeriod() + '。';
-
-  if (localStorage.getItem('morph-location-enabled') !== 'false' && userLocation) {
-    prompt += '\n\n背景：用户当前所在城市是' + userLocation + '。只有当对话中自然触发相关话题（如食物、天气、出行等）时，才可以运用这个信息，让回复更有本地感和亲切感。不要刻意提及。你可以调用自己的世界知识来丰富关于这个城市的回复。';
-  }
-
-  if (userMemory.name)     { parts.push('名字是' + userMemory.name); }
-  if (userMemory.nickname) { parts.push('昵称是' + userMemory.nickname); }
-  if (userMemory.gender)   { parts.push('性别' + userMemory.gender); }
-  if (userMemory.birthday) { parts.push('生日' + getDateFormat(userMemory.birthday)); }
-
-  if (parts.length > 0) {
-    prompt += '\n\n用户的信息：' + parts.join('，') + '。你们已经聊了一段时间了。';
-  }
-
-  return prompt;
-}
-
-// ============================================================
-// AI 对话逻辑（DeepSeek API — 流式传输）
-// ============================================================
-
-const API_FALLBACK_TEXT = '抱歉，Echo 暂时无法回复，请稍后再试。';
-
-/**
- * 流式调用 DeepSeek API，逐 token yield 回复内容
- * 使用 SSE (Server-Sent Events) 协议解析可读流
- */
-async function* sendToAI(userText) {
-  chatHistory.push({ role: 'user', content: userText });
-
-  const systemPrompt = buildSystemPrompt();
-  const aiSettings = getAiSettings();
-
-  const messages = [
-    { role: 'system', content: systemPrompt },
-    ...chatHistory.slice(-CONFIG.HISTORY.MAX_ROUNDS * 2)
-  ];
-
-  try {
-    const response = await fetch(CONFIG.API.BASE_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + getEffectiveApiKey()
-      },
-      body: JSON.stringify({
-        model: CONFIG.API.MODEL,
-        messages: messages,
-        temperature: aiSettings.temperature,
-        max_tokens: aiSettings.maxTokens,
-        top_p: CONFIG.API.TOP_P,
-        stream: true
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error('API 返回 ' + response.status);
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder('utf-8');
-    let fullReply = '';
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop();  // 保留未完成的行
-
-      for (let i = 0; i < lines.length; i++) {
-        const trimmed = lines[i].trim();
-        if (!trimmed || trimmed.indexOf('data: ') !== 0) continue;
-
-        const data = trimmed.slice(6);
-        if (data === '[DONE]') {
-          // 流正常结束 — 保存最终消息
-          chatHistory.push({ role: 'assistant', content: fullReply });
-          await saveMessage('user', userText);
-          await saveMessage('assistant', fullReply);
-          yield '__DONE__';
-          return;
-        }
-
-        try {
-          const parsed = JSON.parse(data);
-          const delta = parsed.choices && parsed.choices[0] && parsed.choices[0].delta;
-          if (delta && delta.content) {
-            fullReply += delta.content;
-            yield delta.content;
-          }
-        } catch (e) {
-          // 跳过无法解析的行
-        }
-      }
-    }
-
-    // 流自然结束（未收到 [DONE] 标记时兜底保存）
-    chatHistory.push({ role: 'assistant', content: fullReply });
-    await saveMessage('user', userText);
-    await saveMessage('assistant', fullReply);
-    yield '__DONE__';
-  } catch (err) {
-    console.warn('API 流式请求失败:', err);
-    const fallback = API_FALLBACK_TEXT;
-    chatHistory.push({ role: 'assistant', content: fallback });
-    await saveMessage('user', userText);
-    await saveMessage('assistant', fallback);
-    yield fallback;
-    yield '__DONE__';
-  }
-}
-
-/**
- * 非流式包装：消费 sendToAI 生成器，返回完整回复文本
- * 用于不需要逐 token 显示的调用（如外部记忆导入后的自动回应）
- */
-async function sendToAIFull(userText) {
-  let fullText = '';
-  for await (const token of sendToAI(userText)) {
-    if (token !== '__DONE__') fullText += token;
-  }
-  return fullText;
 }
 
 // ============================================================
@@ -510,7 +118,6 @@ const THEMES = {
     '--text-primary': '#e5e7eb',
     '--text-secondary': '#9ca3af',
     '--text-placeholder': '#6b7280',
-    '--chat-bg': '#1a1a2e',
     '--shadow-rest': '0 1px 3px rgba(0,0,0,0.3)',
     '--shadow-lift': '0 4px 12px rgba(0,0,0,0.4)',
     '--shadow-lg': '0 8px 32px rgba(0,0,0,0.5)',
@@ -606,7 +213,7 @@ function initExportImport() {
 
   // 导出
   exportBtn.addEventListener('click', function () {
-    var data = { chatHistory: chatHistory, userMemory: userMemory, exportedAt: new Date().toISOString() };
+    var data = { chatHistory: State.chatHistory, userMemory: State.userMemory, exportedAt: new Date().toISOString() };
     var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
@@ -639,20 +246,20 @@ function initExportImport() {
           return;
         }
         // 清空并重建
-        chatHistory.length = 0;
-        data.chatHistory.forEach(function (m) { chatHistory.push(m); });
+        State.chatHistory.length = 0;
+        data.chatHistory.forEach(function (m) { State.chatHistory.push(m); });
         if (data.userMemory) {
-          userMemory.name = data.userMemory.name || null;
-          userMemory.nickname = data.userMemory.nickname || null;
-          userMemory.gender = data.userMemory.gender || '';
-          userMemory.birthday = data.userMemory.birthday || '';
-          userMemory.mentionedTopics = data.userMemory.mentionedTopics || [];
+          State.userMemory.name = data.userMemory.name || null;
+          State.userMemory.nickname = data.userMemory.nickname || null;
+          State.userMemory.gender = data.userMemory.gender || '';
+          State.userMemory.birthday = data.userMemory.birthday || '';
+          State.userMemory.mentionedTopics = data.userMemory.mentionedTopics || [];
         }
         // 写入 IndexedDB
         db.messages.clear().then(function () {
           var ops = [];
-          for (var i = 0; i < chatHistory.length; i++) {
-            ops.push(saveMessage(chatHistory[i].role, chatHistory[i].content));
+          for (var i = 0; i < State.chatHistory.length; i++) {
+            ops.push(saveMessage(State.chatHistory[i].role, State.chatHistory[i].content));
           }
           return Promise.all(ops);
         }).then(function () {
@@ -763,9 +370,8 @@ function initChatDropdown() {
 // 确认对话框（支持动态文字与回调）
 // ============================================================
 
-var _confirmCallback = null;
-
 var CONFIRM_DEFAULT_TEXT = '确定要清除所有聊天记录吗？此操作将删除当前对话历史，但 Echo 对你的基本记忆（名字、偏好等）会保留。此操作不可撤销。';
+let _confirmCallback = null;
 
 function openConfirmDialogWithText(text, onConfirm) {
   var textEl = document.getElementById('confirmText');
@@ -776,7 +382,7 @@ function openConfirmDialogWithText(text, onConfirm) {
 
 function openConfirmDialog() {
   openConfirmDialogWithText(CONFIRM_DEFAULT_TEXT, async function () {
-    chatHistory.length = 0;
+    State.chatHistory.length = 0;
     try { await db.messages.clear(); } catch (e) { /* ignore */ }
     document.getElementById('chatMessages').innerHTML = '';
     initWelcomeBubble();
@@ -834,12 +440,12 @@ function resetAllData() {
     }
 
     // 3. 清空内存
-    chatHistory.length = 0;
-    userMemory.name = null;
-    userMemory.nickname = null;
-    userMemory.gender = '';
-    userMemory.birthday = '';
-    userMemory.mentionedTopics = [];
+    State.chatHistory.length = 0;
+    State.userMemory.name = null;
+    State.userMemory.nickname = null;
+    State.userMemory.gender = '';
+    State.userMemory.birthday = '';
+    State.userMemory.mentionedTopics = [];
 
     // 4. 刷新页面
     setTimeout(function () {
@@ -879,9 +485,9 @@ function initAboutModal() {
 
 function openProfileModal() {
   // 填充当前值
-  document.getElementById('nicknameInput').value = userMemory.nickname || '';
-  document.getElementById('genderSelect').value = userMemory.gender || '';
-  document.getElementById('birthdayInput').value = userMemory.birthday || '';
+  document.getElementById('nicknameInput').value = State.userMemory.nickname || '';
+  document.getElementById('genderSelect').value = State.userMemory.gender || '';
+  document.getElementById('birthdayInput').value = State.userMemory.birthday || '';
   document.getElementById('profileOverlay').classList.add('show');
 }
 
@@ -899,9 +505,9 @@ function initProfileModal() {
   });
 
   saveBtn.addEventListener('click', function () {
-    userMemory.nickname = document.getElementById('nicknameInput').value.trim() || null;
-    userMemory.gender = document.getElementById('genderSelect').value;
-    userMemory.birthday = document.getElementById('birthdayInput').value;
+    State.userMemory.nickname = document.getElementById('nicknameInput').value.trim() || null;
+    State.userMemory.gender = document.getElementById('genderSelect').value;
+    State.userMemory.birthday = document.getElementById('birthdayInput').value;
     saveMemory();
     overlay.classList.remove('show');
     showToast('个人信息已保存');
@@ -995,7 +601,7 @@ function initMemoryPanel() {
           var data = JSON.parse(content);
           if (data.chatHistory && Array.isArray(data.chatHistory)) {
             for (var i = 0; i < data.chatHistory.length; i++) {
-              chatHistory.push(data.chatHistory[i]);
+              State.chatHistory.push(data.chatHistory[i]);
               saveMessage(data.chatHistory[i].role, data.chatHistory[i].content);
             }
             close();
@@ -1010,7 +616,7 @@ function initMemoryPanel() {
       }
 
       // .txt 或无法解析的 JSON → 作为原始文本导入
-      chatHistory.push({ role: 'user', content: content });
+      State.chatHistory.push({ role: 'user', content: content });
       addMessage(content, 'user');
       saveMessage('user', content);
       close();
@@ -1062,7 +668,7 @@ function initKeyboardShortcuts(inputEl, sendBtnEl) {
 
 function initWelcomeBubble() {
   setTimeout(function () {
-    var nickname = userMemory.nickname;
+    var nickname = State.userMemory.nickname;
     var greeting;
     if (nickname) {
       greeting = '嘿，' + nickname + '，你来了。我等了你好久呀。';
@@ -1075,7 +681,7 @@ function initWelcomeBubble() {
 
 /**
  * 通用发送绑定：将输入框、发送按钮、消息容器组装为完整的聊天发送流程
- * 桌面端和移动端各自调用，共享 chatHistory / userMemory / sendToAI
+ * 桌面端和移动端各自调用，共享 State.chatHistory / State.userMemory / sendToAI
  */
 function bindSendButton(inputEl, sendBtnEl, messagesContainer) {
   if (!inputEl || !sendBtnEl || !messagesContainer) return;
@@ -1134,8 +740,8 @@ function bindSendButton(inputEl, sendBtnEl, messagesContainer) {
         addMessage(guideMsg, 'echo');
       }
       // Save to history so context is preserved
-      chatHistory.push({ role: 'user', content: userText });
-      chatHistory.push({ role: 'assistant', content: guideMsg });
+      State.chatHistory.push({ role: 'user', content: userText });
+      State.chatHistory.push({ role: 'assistant', content: guideMsg });
       saveMessage('user', userText);
       saveMessage('assistant', guideMsg);
 
@@ -1251,8 +857,8 @@ function initMobileNavigation() {
     // 渲染历史消息到移动端聊天容器
     var mobileContainer = document.getElementById('mobileChatMessages');
     mobileContainer.innerHTML = '';
-    for (var i = 0; i < chatHistory.length; i++) {
-      var msg = chatHistory[i];
+    for (var i = 0; i < State.chatHistory.length; i++) {
+      var msg = State.chatHistory[i];
       var sender = msg.role === 'user' ? 'user' : 'echo';
 
       var wrapper = document.createElement('div');
@@ -1419,27 +1025,6 @@ function initAvatarGlowGuide() {
 }
 
 // ============================================================
-// 打开设置面板并切换到指定标签页
-// ============================================================
-
-function openSettingsToTab(tabId) {
-  var overlay = document.getElementById('settingsOverlay');
-  var panel = document.getElementById('settingsPanel');
-  overlay.classList.add('show');
-  panel.classList.add('show');
-
-  var tabs = document.querySelectorAll('#settingsTabs .panel-tab');
-  var contents = document.querySelectorAll('.panel-tab-content');
-  tabs.forEach(function (t) { t.classList.remove('active'); });
-  contents.forEach(function (c) { c.classList.remove('active'); });
-
-  var targetTab = document.querySelector('#settingsTabs .panel-tab[data-tab="' + tabId + '"]');
-  if (targetTab) targetTab.classList.add('active');
-  var targetContent = document.getElementById(tabId);
-  if (targetContent) targetContent.classList.add('active');
-}
-
-// ============================================================
 // 开屏弹窗（任务 3 — 首次访问介绍）
 // ============================================================
 
@@ -1590,7 +1175,7 @@ document.addEventListener('DOMContentLoaded', async function () {
   initIntroModal();
 
   // 渲染聊天
-  if (chatHistory.length === 0) {
+  if (State.chatHistory.length === 0) {
     initWelcomeBubble();
   } else {
     renderHistoryMessages();
