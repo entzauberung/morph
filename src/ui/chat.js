@@ -9,8 +9,8 @@ function addMessage(messageText, sender, timestampFirst) {
   if (!chatMessages) return null;
 
   // 对 Echo 的长回复进行分段显示（历史渲染 + 实时收尾时生效）
-  if (sender === 'echo' && messageText.length > 120 && typeof splitIntoMessages === 'function') {
-    const segments = splitIntoMessages(messageText, 120, 50);
+  if (sender === 'echo' && messageText.length > 30 && typeof splitIntoMessages === 'function') {
+    const segments = splitIntoMessages(messageText);
     let firstWrapper = null;
     for (let s = 0; s < segments.length; s++) {
       const segText = segments[s].text;

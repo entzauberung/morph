@@ -21,8 +21,8 @@ function renderMobileMessages() {
     const msg = State.chatHistory[i];
     const sender = msg.role === 'user' ? 'user' : 'echo';
     // 对 Echo 的长回复进行分段显示
-    if (sender === 'echo' && msg.content.length > 120 && typeof splitIntoMessages === 'function') {
-      const segments = splitIntoMessages(msg.content, 120, 50);
+    if (sender === 'echo' && msg.content.length > 30 && typeof splitIntoMessages === 'function') {
+      const segments = splitIntoMessages(msg.content);
       for (let s = 0; s < segments.length; s++) {
         const wrapper = document.createElement('div');
         wrapper.className = 'message echo';
