@@ -25,11 +25,27 @@ db.version(1).stores({
 async function loadChatHistory() {
   try {
     const allMessages = await db.messages.orderBy('id').toArray();
-    allMessages.forEach(function (msg) {
-      State.chatHistory.push({ role: msg.role, content: msg.content });
-    });
+    if (allMessages && allMessages.length > 0) {
+      allMessages.forEach(function (msg) {
+        State.chatHistory.push({ role: msg.role, content: msg.content });
+      });
+      return;  // IndexedDB 有数据，直接用
+    }
   } catch (e) {
-    console.warn('IndexedDB 读取失败，以空历史启动:', e);
+    console.warn('IndexedDB 读取失败:', e);
+  }
+  // IndexedDB 为空或读取失败时，从 localStorage 的独立备份恢复
+  try {
+    const raw = localStorage.getItem('morph-messages-ls');
+    if (raw) {
+      const messages = JSON.parse(raw);
+      messages.forEach(function (msg) {
+        State.chatHistory.push({ role: msg.role, content: msg.content });
+      });
+      console.log('从 localStorage 恢复聊天记录: ' + messages.length + ' 条');
+    }
+  } catch (e) {
+    console.warn('localStorage 读取失败:', e);
   }
 }
 
@@ -74,7 +90,6 @@ async function saveMemory() {
       birthday: State.userMemory.birthday,
       mentionedTopics: State.userMemory.mentionedTopics
     });
-    backupToLocalStorage();  // 新增：每次保存用户记忆后同步备份
   } catch (e) {
     console.warn('IndexedDB 保存记忆失败:', e);
   }
@@ -91,65 +106,39 @@ async function saveMessage(role, content) {
       const toDelete = await db.messages.orderBy('id').limit(Math.floor(limit / 2)).keys();
       await db.messages.bulkDelete(toDelete);
     }
-    backupToLocalStorage();  // 新增：每次保存消息后同步备份到 localStorage
   } catch (e) {
     console.warn('IndexedDB 写入失败:', e);
   }
+  // 无论 IndexedDB 成功还是失败，都独立追加备份到 localStorage（不依赖 IndexedDB 读取）
+  appendMessageToLocalStorage(role, content);
 }
 
-const LS_BACKUP_KEY = 'morph-db-backup';
-
 /**
- * 备份当前所有数据到 localStorage
- * 用于 IndexedDB 意外清空时的数据恢复
- * 在每次 saveMessage 和 saveMemory 成功后调用
+ * 直接追加单条消息到 localStorage（不依赖 IndexedDB 读取）
+ * 这是为了兼容 Edge / 国产浏览器中 IndexedDB 读取不稳定的问题
+ * @param {string} role - 消息角色：'user' 或 'assistant'
+ * @param {string} content - 消息文本内容
  */
-async function backupToLocalStorage() {
+function appendMessageToLocalStorage(role, content) {
   try {
-    const allMessages = await db.messages.orderBy('id').toArray();
-    const userInfo = await db.userInfo.get('memory');
-    // 读取现有的备份版本号，+1 后写入（多标签页竞争保护）
-    let currentVersion = 0;
+    const LS_MESSAGES_KEY = 'morph-messages-ls';
+    let messages = [];
+    // 读取现有 localStorage 中的消息列表
     try {
-      const existingRaw = localStorage.getItem(LS_BACKUP_KEY);
-      if (existingRaw) {
-        const existing = JSON.parse(existingRaw);
-        currentVersion = existing.version || 0;
-      }
-    } catch (e) { /* 忽略 */ }
-    const backup = {
-      version: currentVersion + 1,   // 新增版本号，每次递增
-      messages: allMessages || [],
-      userInfo: userInfo || null,
-      timestamp: Date.now()
-    };
-    localStorage.setItem(LS_BACKUP_KEY, JSON.stringify(backup));
+      const raw = localStorage.getItem(LS_MESSAGES_KEY);
+      if (raw) messages = JSON.parse(raw);
+    } catch (e) { /* 忽略解析错误 */ }
+    // 追加新消息
+    messages.push({ role: role, content: content, timestamp: Date.now() });
+    // 同样受 MAX_PERSIST 限制，避免撑爆 localStorage（5MB限制）
+    const limit = (typeof CONFIG !== 'undefined' && CONFIG.HISTORY && CONFIG.HISTORY.MAX_PERSIST)
+      ? CONFIG.HISTORY.MAX_PERSIST
+      : 500;
+    if (messages.length > limit) {
+      messages = messages.slice(Math.floor(limit / 2));
+    }
+    localStorage.setItem(LS_MESSAGES_KEY, JSON.stringify(messages));
   } catch (e) {
     // 备份失败不影响主流程，静默处理
-  }
-}
-
-/**
- * 从 localStorage 恢复数据到 IndexedDB
- * 通常用于页面初始化时检测 IndexedDB 是否为空，若为空则尝试从备份恢复
- * @returns {Promise<boolean>} true 表示恢复成功，false 表示无有效备份或恢复失败
- */
-async function restoreFromLocalStorage() {
-  try {
-    const raw = localStorage.getItem(LS_BACKUP_KEY);
-    if (!raw) return false;
-    const backup = JSON.parse(raw);
-    // 只恢复 24 小时内的备份，防止恢复过期数据
-    if (Date.now() - backup.timestamp > 86400000) return false;
-    if (backup.messages && backup.messages.length > 0) {
-      await db.messages.bulkPut(backup.messages);
-    }
-    if (backup.userInfo) {
-      await db.userInfo.put(backup.userInfo);
-    }
-    return true;
-  } catch (e) {
-    console.warn('localStorage 恢复失败:', e);
-    return false;
   }
 }

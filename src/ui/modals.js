@@ -69,7 +69,7 @@ function resetAllData() {
       'morph-avatar-guide-shown',
       'morph-location-enabled',
       'morph-location-greeted',
-      'morph-db-backup'
+      'morph-messages-ls'
     ];
     for (let i = 0; i < keysToRemove.length; i++) {
       localStorage.removeItem(keysToRemove[i]);

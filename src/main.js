@@ -4,18 +4,6 @@ document.addEventListener('DOMContentLoaded', async function () {
   await loadChatHistory();
   await loadUserMemory();
 
-  // ====== 新增：检测 IndexedDB 是否为空，若为空则尝试从 localStorage 恢复 ======
-  if (State.chatHistory.length === 0) {
-    const restored = await restoreFromLocalStorage();
-    if (restored) {
-      // 恢复成功，重新加载数据到内存（清空后重新 load，防止重复）
-      State.chatHistory = [];
-      await loadChatHistory();
-      await loadUserMemory();
-    }
-  }
-  // ====== 新增结束 ======
-
   loadTheme();
 
   const inputEl = document.getElementById('userInput');

@@ -29,20 +29,11 @@ function splitIntoMessages(text, maxLen, minLen) {
   if (rawSegments.length <= 1) {
     return [{ text: text, delay: 0 }];
   }
-  // Step 2：合并过短的段（< 15字就合并到前一段）
-  const merged = [];
-  for (let i = 0; i < rawSegments.length; i++) {
-    if (merged.length > 0 && rawSegments[i].length < 15) {
-      merged[merged.length - 1] += rawSegments[i];
-    } else {
-      merged.push(rawSegments[i]);
-    }
-  }
-  // Step 3：添加延迟
-  return merged.map(function (seg, i) {
+  // 直接返回分段结果（不再合并短段，与流式分段逻辑一致）
+  return rawSegments.map(function (seg, i) {
     return {
       text: seg,
-      delay: i < merged.length - 1 ? 700 : 0
+      delay: i < rawSegments.length - 1 ? 700 : 0
     };
   });
 }
