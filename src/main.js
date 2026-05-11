@@ -60,11 +60,9 @@ document.addEventListener('DOMContentLoaded', async function () {
     initWelcomeBubble();
   } else {
     renderHistoryMessages();
-    // 同步移动端渲染计数器，确保增量渲染从正确位置开始
-    if (typeof _mobileRenderedCount !== 'undefined') {
-      _mobileRenderedCount = State.chatHistory.length;
-    }
   }
+  // 移动端同步渲染（桌面端渲染完后，移动端也渲染到 #mobileChatMessages）
+  renderMobileMessages();
 
   initSendButton();
 });

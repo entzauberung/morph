@@ -330,8 +330,13 @@ async function* sendToAI(userText) {
  */
 async function sendToAIFull(userText) {
   let fullText = '';
-  for await (const token of sendToAI(userText)) {
-    if (token !== '__DONE__') fullText += token;
+  try {
+    for await (const token of sendToAI(userText)) {
+      if (token !== '__DONE__') fullText += token;
+    }
+  } catch (err) {
+    console.warn('sendToAIFull API 失败，使用 fallback 兜底:', err);
+    fullText = API_FALLBACK_TEXT;
   }
   return fullText;
 }

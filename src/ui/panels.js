@@ -225,6 +225,9 @@ function initMemoryPanel() {
       // 让 Echo 自动回应（使用非流式包装）
       sendToAIFull(content).then(function (reply) {
         addMessage(reply, 'echo');
+      }).catch(function (err) {
+        console.warn('sendToAIFull 面板调用失败:', err);
+        addMessage(API_FALLBACK_TEXT, 'echo');
       });
     };
     reader.readAsText(file);
