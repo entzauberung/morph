@@ -185,7 +185,7 @@ function initDrawer() {
     if (action === 'settings')    { close(); document.getElementById('navSettingsBtn').click(); }
     if (action === 'ai-settings') { close(); openMobileAiSettings(); }
     if (action === 'clear')       { close(); openConfirmDialog(); }
-    if (action === 'about')       { close(); openAboutModal(); }
+    if (action === 'about-echo' || action === 'about-lens') { close(); openAbout(); }
   });
 
   // 右滑打开手势（仅在联系人页生效）

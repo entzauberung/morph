@@ -184,8 +184,6 @@ function switchCharacter(character) {
   // 桌面端 UI 更新
   document.getElementById('chat-header-title').textContent =
     character === 'echo' ? 'Echo' : 'Lens';
-  document.getElementById('chat-header-status').textContent =
-    character === 'echo' ? '在线' : '在线';
   document.getElementById('userInput').placeholder =
     character === 'echo' ? '和 Echo 说点什么吧...' : '和Lens聊聊你的想法...';
   // 移动端 UI 同步更新
@@ -194,6 +192,18 @@ function switchCharacter(character) {
   document.getElementById('mobile-chat-header-status').textContent = '在线';
   document.getElementById('mobileUserInput').placeholder =
     character === 'echo' ? '和 Echo 说点什么吧...' : '和Lens聊聊你的想法...';
+  // 更新"关于"按钮文本（桌面端下拉菜单触发按钮）
+  const desktopAboutSpan = document.querySelector('#dropdownAbout span');
+  if (desktopAboutSpan) {
+    desktopAboutSpan.textContent = character === 'echo' ? 'ℹ️ 关于 Echo' : 'ℹ️ 关于棱镜';
+  }
+  // 切换移动端"关于"按钮（Echo / 棱镜）
+  const drawerAboutEcho = document.querySelector('.drawer-item[data-action="about-echo"]');
+  const drawerAboutLens = document.querySelector('.drawer-item[data-action="about-lens"]');
+  if (drawerAboutEcho && drawerAboutLens) {
+    drawerAboutEcho.style.display = character === 'echo' ? '' : 'none';
+    drawerAboutLens.style.display = character === 'echo' ? 'none' : '';
+  }
 
   // 加载聊天历史
   const targetHistory = character === 'echo' ? State.chatHistory : State.lensHistory;
@@ -458,10 +468,10 @@ function initChatDropdown() {
     openConfirmDialog();
   });
 
-  // 关于 Echo
+  // 关于 Echo / 关于棱镜
   aboutBtn.addEventListener('click', function () {
     dropdown.classList.remove('show');
-    openAboutModal();
+    openAbout();
   });
 }
 

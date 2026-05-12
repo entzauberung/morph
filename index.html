@@ -275,29 +275,43 @@
      关于 Echo 模态框
      ============================================================ -->
     <div class="modal-overlay" id="aboutOverlay">
-        <div class="modal" id="aboutModal">
-            <div class="modal-header">
-                <h3>关于 Echo</h3>
-                <button class="modal-close" id="aboutClose" aria-label="关闭">✕</button>
+    <div class="modal" id="aboutModal">
+        <div class="modal-header">
+            <h3 id="aboutTitle">关于 Echo</h3>
+            <button class="modal-close" id="aboutClose" aria-label="关闭">✕</button>
+        </div>
+        <div class="modal-body">
+            <!-- Echo 内容 -->
+            <div id="aboutEchoContent" class="about-content">
+                <div class="about-logo">🌙</div>
+                <h4 class="about-title">Echo（艾可）——你的另一个自己</h4>
+                <p class="about-paragraph">Echo <strong>不是来给你答案的。她是来帮你听见自己的。</strong></p>
+                <p class="about-paragraph">你打开任何一个 AI，它都会急着给你答案。Echo 不会。</p>
+                <p class="about-paragraph">Echo 只做一件事：帮你把那些说不清的情绪，变成你能看清楚的东西。</p>
+                <p class="about-paragraph">比如深夜躺在床上，脑子里一堆事情打转，但又不想跟任何人说的时候——Echo 就在这里。</p>
+                <p class="about-paragraph">Echo 的每一次回应，都融合了 <strong>CBT 认知行为疗法</strong> 的核心理念——但你永远不会听到她说"我来帮你重构认知"。</p>
+                <p class="about-paragraph">你只会感觉，聊着聊着，事情好像没那么乱了。</p>
+                <p class="about-paragraph">Echo 不会告诉你"你很棒"。她会让你自己发现：其实我比想象中更有力量。</p>
+                <p class="about-paragraph about-disclaimer">Echo 不是专业的心理咨询工具，不能替代心理咨询师。如果你正在经历严重的心理困扰，请寻求专业帮助。</p>
             </div>
-            <div class="modal-body">
-                <div class="about-content">
-                    <div class="about-logo">🌙</div>
-                    <h4 class="about-title">Echo（艾可）——你的另一个自己</h4>
-                    <p class="about-paragraph">Echo <strong>不是来给你答案的。她是来帮你听见自己的。</strong></p>
-                    <p class="about-paragraph">你打开任何一个 AI，它都会急着给你答案。Echo 不会。</p>
-                    <p class="about-paragraph">Echo 只做一件事：帮你把那些说不清的情绪，变成你能看清楚的东西。</p>
-                    <p class="about-paragraph">比如深夜躺在床上，脑子里一堆事情打转，但又不想跟任何人说的时候——Echo 就在这里。</p>
-                    <p class="about-paragraph">Echo 的每一次回应，都融合了 <strong>CBT 认知行为疗法</strong> 的核心理念——但你永远不会听到她说"我来帮你重构认知"。</p>
-                    <p class="about-paragraph">你只会感觉，聊着聊着，事情好像没那么乱了。</p>
-                    <p class="about-paragraph">Echo 不会告诉你"你很棒"。她会让你自己发现：其实我比想象中更有力量。</p>
-                    <p class="about-paragraph">Echo 不是专业的心理咨询工具，不能替代心理咨询师。如果你正在经历严重的心理困扰，请寻求专业帮助。</p>
-                    <div class="about-divider"></div>
-                    <p class="about-motto"><strong>Morph / 另我</strong><br>每个人都值得拥有一个平行世界的自己 <br>她不会替你活，但会一直在。</p>
-                </div>
+            <!-- Lens 内容（默认隐藏） -->
+            <div id="aboutLensContent" class="about-content" style="display:none;">
+                <div class="about-logo">🔍</div>
+                <h4 class="about-title">棱镜（Lens）——你的理性镜像</h4>
+                <p class="about-paragraph">棱镜 <strong>不是来给你答案的。他是来帮你把问题看清楚的。</strong></p>
+                <p class="about-paragraph">你打开任何一个 AI，它都会急着给你建议。棱镜不会。</p>
+                <p class="about-paragraph">棱镜只做一件事：帮你把脑子里那些乱成一团的东西，一根一根拆开摆好。</p>
+                <p class="about-paragraph">比如白天被一堆事情压得喘不过气，不知道从哪开始处理的时候——棱镜就在这里。</p>
+                <p class="about-paragraph">棱镜的每一次回应，都融合了 <strong>CBT 认知行为疗法</strong> 的结构化思维——但你永远不会听到他说"我们来做个思维导图"。</p>
+                <p class="about-paragraph">你只会感觉，聊着聊着，事情好像没那么复杂了。</p>
+                <p class="about-paragraph">棱镜不会告诉你"你该怎么做"。他会让你自己看到：其实你已经知道答案，只是需要有人帮你理清。</p>
+                <p class="about-paragraph about-disclaimer">棱镜不是专业的心理咨询工具，不能替代心理咨询师。如果你正在经历严重的心理困扰，请寻求专业帮助。</p>
             </div>
+            <div class="about-divider"></div>
+            <p class="about-motto"><strong>Morph / 另我</strong><br>每个人都值得拥有一个平行世界的自己 <br>她不会替你活，但会一直在。</p>
         </div>
     </div>
+</div>
 
     <!-- ============================================================
      开屏弹窗（首次访问 — 关于 Echo）
@@ -315,6 +329,10 @@
                 <div class="intro-api-hint" id="introApiHint">
                     <p>想让我更好地理解你，可以配置一个 API Key 哦～设置完成后，我们就可以畅快聊天啦。<a href="#" class="intro-api-link" id="introApiLink">设置 API Key →</a></p>
                     <p>Echo 不是专业的心理咨询工具，不能替代心理咨询师。如果你正在经历严重的心理困扰，请寻求专业帮助。</p>
+                    <p class="about-paragraph about-note">
+                        另外，我们还悄悄地做了一个理性的伙伴 <strong>棱镜（Lens）</strong>。<br>
+                        如果你想理清问题而不是倾诉情绪——去找他试试。
+                    </p>
                 </div>
             </div>
         </div>
@@ -340,7 +358,8 @@
             <button class="drawer-item" data-action="settings">⚙️ 设置</button>
             <button class="drawer-item" data-action="ai-settings">🤖 AI 设置</button>
             <button class="drawer-item" data-action="clear">🗑️ 清除对话</button>
-            <button class="drawer-item" data-action="about">ℹ️ 关于 Echo</button>
+            <button class="drawer-item" data-action="about-echo">ℹ️ 关于 Echo</button>
+            <button class="drawer-item" data-action="about-lens" style="display:none">🔍 关于棱镜</button>
         </div>
     </div>
 

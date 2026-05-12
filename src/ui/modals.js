@@ -102,7 +102,11 @@ function initResetAllButton() {
 // 关于 Echo 模态框（任务 2）
 // ============================================================
 
-function openAboutModal() {
+function openAbout() {
+  const isLens = State.currentCharacter === 'lens';
+  document.getElementById('aboutTitle').textContent = isLens ? '关于棱镜' : '关于 Echo';
+  document.getElementById('aboutEchoContent').style.display = isLens ? 'none' : 'block';
+  document.getElementById('aboutLensContent').style.display = isLens ? 'block' : 'none';
   document.getElementById('aboutOverlay').classList.add('show');
 }
 
