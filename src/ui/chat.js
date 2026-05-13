@@ -4,34 +4,42 @@
 // 核心：addMessage
 // ============================================================
 
+// 把一条消息贴到聊天框里（如果需要，还会自动切成长段分开发送）
 function addMessage(messageText, sender, timestampFirst) {
+  // 找到聊天框容器
   const chatMessages = document.getElementById('chatMessages');
+  // 容器如果坏掉就拉倒
   if (!chatMessages) return null;
 
-  // 对 Echo 和棱镜的长回复进行分段显示
+  // 如果是 Echo 或棱镜，且说话比较啰嗦（超过30字）
   if ((sender === 'echo' || sender === 'lens') && messageText.length > 30 && typeof splitIntoMessages === 'function') {
-    const segments = splitIntoMessages(messageText);
+    const segments = splitIntoMessages(messageText);  // 把长文字切成小段
     let firstWrapper = null;
     for (let s = 0; s < segments.length; s++) {
       const segText = segments[s].text;
+      // 给每小段粘一个便签条（一个 div）
       const wrapper = document.createElement('div');
       wrapper.className = 'message ' + sender;
+      // 盖上时间
       const timeEl = document.createElement('div');
       timeEl.className = 'message-time';
       timeEl.textContent = getCurrentTime();
+      // 做气泡
       const bubble = document.createElement('div');
       bubble.className = 'bubble ' + sender;
       bubble.textContent = segText;
+      // 组装并贴上公告栏
       wrapper.appendChild(bubble);
       wrapper.appendChild(timeEl);
       chatMessages.appendChild(wrapper);
-      if (s === 0) { firstWrapper = wrapper; }
+      if (s === 0) { firstWrapper = wrapper; }  // 记住第一张便签，好去回报
     }
+    // 自动滚到最新
     chatMessages.scrollTop = chatMessages.scrollHeight;
     return firstWrapper;
   }
 
-  // 短文本或用户消息：单气泡
+  // 短话或者你自己的消息：做一个气泡就够了
   const messageWrapper = document.createElement('div');
   messageWrapper.className = 'message ' + sender;
 
@@ -43,6 +51,7 @@ function addMessage(messageText, sender, timestampFirst) {
   bubbleEl.className = 'bubble ' + sender;
   bubbleEl.textContent = messageText;
 
+  // 按配置决定时间戳在字前还是字后
   if (timestampFirst) {
     messageWrapper.appendChild(timeEl);
     messageWrapper.appendChild(bubbleEl);
@@ -53,7 +62,6 @@ function addMessage(messageText, sender, timestampFirst) {
 
   chatMessages.appendChild(messageWrapper);
   chatMessages.scrollTop = chatMessages.scrollHeight;
-
   return messageWrapper;
 }
 
@@ -99,30 +107,46 @@ function sleep(ms) {
 // 打字指示器
 // ============================================================
 
+// 创建一个“正在输入…”的气泡
 function createTypingIndicator() {
+  // 看现在是谁在说话，给气泡选颜色（是lens的色还是echo的色）
   const senderClass = State.currentCharacter === 'lens' ? 'lens' : 'echo';
+  
+  // 找到聊天记录的大盒子（像微信聊天背景）
   const chatMessages = document.getElementById('chatMessages');
+  // 如果盒子没了（页面出问题），直接不干了
   if (!chatMessages) return null;
 
+  // 做一个包裹气泡的外壳（像礼物盒）
   const messageWrapper = document.createElement('div');
   messageWrapper.className = 'message ' + senderClass + ' typing-indicator';
 
+  // 做气泡的圆角容器
   const bubbleEl = document.createElement('div');
   bubbleEl.className = 'bubble ' + senderClass + ' typing-bubble';
 
+  // 准备装三个小点点的篮子
   const dots = document.createElement('span');
   dots.className = 'typing-dots';
+  
+  // 锅里下3个饺子：造出三个小圆点，插进篮子里
   for (let i = 0; i < 3; i++) {
     const dot = document.createElement('span');
     dot.className = 'typing-dot';
     dots.appendChild(dot);
   }
 
+  // 把三个点点塞进气泡容器里
   bubbleEl.appendChild(dots);
+  // 把气泡容器塞进外壳里
   messageWrapper.appendChild(bubbleEl);
+  // 把整个外壳挂到聊天记录的最底下
   chatMessages.appendChild(messageWrapper);
+  
+  // 自动把聊天窗口滚到最下面，保证你能看见新出现的点点
   chatMessages.scrollTop = chatMessages.scrollHeight;
 
+  // 把做好的这个外壳还回去，方便之后想删掉它（比如对方发话了就删掉）
   return messageWrapper;
 }
 
