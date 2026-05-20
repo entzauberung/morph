@@ -12,7 +12,7 @@ const CONFIG = {
     MODEL: 'deepseek-v4-flash',
     API_KEY: '',                          // 在此填入你的 DeepSeek API Key
     TEMPERATURE: 0.85,
-    MAX_TOKENS: 380,
+    MAX_TOKENS: 600,
     TOP_P: 0.92,
   },
 
